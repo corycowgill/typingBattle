@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Typing Battle - Learn to Type!</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="theme-space">
+
+<!-- ====== Profile Screen ====== -->
+<section id="screen-profile" class="screen active">
+  <div class="hero">
+    <h1 class="title">⌨️ Typing Battle</h1>
+    <p class="subtitle">Pick your player to start typing!</p>
+  </div>
+  <div id="profile-list" class="profile-list"></div>
+  <div class="profile-create">
+    <input id="new-profile-name" type="text" maxlength="14" placeholder="Type a name..." />
+    <div id="avatar-picker" class="avatar-picker"></div>
+    <button id="btn-create-profile" class="btn btn-primary">Create Player</button>
+  </div>
+</section>
+
+<!-- ====== Main Menu ====== -->
+<section id="screen-menu" class="screen">
+  <header class="topbar">
+    <button class="btn btn-ghost" id="btn-back-to-profiles">← Players</button>
+    <div class="player-tag">
+      <span id="menu-avatar" class="avatar-big">🚀</span>
+      <div>
+        <div class="player-name" id="menu-player-name">Player</div>
+        <div class="player-stats" id="menu-player-stats">Level 1 · Best WPM: 0</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="btn-mute">🔊</button>
+  </header>
+
+  <h2 class="menu-heading">Choose a Mini-Game</h2>
+  <div class="mode-grid">
+    <button class="mode-card" data-mode="practice">
+      <div class="mode-emoji">📚</div>
+      <div class="mode-name">Practice</div>
+      <div class="mode-desc">Calm drill. Learn the keys.</div>
+    </button>
+    <button class="mode-card" data-mode="falling">
+      <div class="mode-emoji">☄️</div>
+      <div class="mode-name">Falling Words</div>
+      <div class="mode-desc">Catch words before they crash!</div>
+    </button>
+    <button class="mode-card" data-mode="shooter">
+      <div class="mode-emoji">🎯</div>
+      <div class="mode-name">Word Blaster</div>
+      <div class="mode-desc">Type to defeat enemies.</div>
+    </button>
+    <button class="mode-card" data-mode="race">
+      <div class="mode-emoji">🏁</div>
+      <div class="mode-name">Adventure Race</div>
+      <div class="mode-desc">Race through a themed level.</div>
+    </button>
+  </div>
+
+  <div class="menu-row">
+    <div class="picker">
+      <label>Level</label>
+      <div class="level-picker" id="level-picker"></div>
+    </div>
+    <div class="picker">
+      <label>Theme</label>
+      <div class="theme-picker" id="theme-picker"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Game Screen ====== -->
+<section id="screen-game" class="screen">
+  <header class="topbar game-hud">
+    <button class="btn btn-ghost" id="btn-quit-game">← Menu</button>
+    <div class="hud-stats">
+      <div class="stat"><span class="stat-label">WPM</span><span class="stat-value" id="hud-wpm">0</span></div>
+      <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value" id="hud-acc">100%</span></div>
+      <div class="stat"><span class="stat-label">Streak</span><span class="stat-value" id="hud-streak">0</span></div>
+      <div class="stat"><span class="stat-label" id="hud-extra-label">Score</span><span class="stat-value" id="hud-extra">0</span></div>
+    </div>
+    <button class="btn btn-ghost" id="btn-mute-game">🔊</button>
+  </header>
+
+  <div class="play-area">
+    <canvas id="game-canvas" width="1024" height="520"></canvas>
+    <div class="target-line">
+      <div id="target-prompt" class="target-prompt"></div>
+      <div id="typed-echo" class="typed-echo"></div>
+    </div>
+  </div>
+
+  <div id="keyboard" class="keyboard"></div>
+  <input id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+</section>
+
+<!-- ====== Summary Screen ====== -->
+<section id="screen-summary" class="screen">
+  <div class="summary-card">
+    <h2 id="summary-title">Great job! 🎉</h2>
+    <div class="summary-stats">
+      <div class="big-stat"><div class="big-value" id="sum-wpm">0</div><div class="big-label">WPM</div></div>
+      <div class="big-stat"><div class="big-value" id="sum-acc">0%</div><div class="big-label">Accuracy</div></div>
+      <div class="big-stat"><div class="big-value" id="sum-score">0</div><div class="big-label">Score</div></div>
+    </div>
+    <div id="summary-feedback" class="summary-feedback"></div>
+    <div id="summary-badges" class="badges"></div>
+    <div class="summary-actions">
+      <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+      <button class="btn btn-ghost" id="btn-back-to-menu">Menu</button>
+    </div>
+  </div>
+</section>
+
+<!-- Scripts: load in dependency order. No ES modules so file:// works everywhere. -->
+<script src="js/data.js"></script>
+<script src="js/themes.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/state.js"></script>
+<script src="js/keyboard.js"></script>
+<script src="js/modes/practice.js"></script>
+<script src="js/modes/falling.js"></script>
+<script src="js/modes/shooter.js"></script>
+<script src="js/modes/race.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
