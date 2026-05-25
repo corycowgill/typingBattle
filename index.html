@@ -8,14 +8,18 @@
 </head>
 <body class="theme-space">
 
+<!-- Floating background decorations (populated by JS, theme-aware) -->
+<div id="bg-decorations" class="bg-decorations"></div>
+
 <!-- ====== Profile Screen ====== -->
 <section id="screen-profile" class="screen active">
   <div class="hero">
-    <h1 class="title">⌨️ Typing Battle</h1>
+    <h1 class="title" id="game-title">⌨️ Typing Battle</h1>
     <p class="subtitle">Pick your player to start typing!</p>
   </div>
   <div id="profile-list" class="profile-list"></div>
   <div class="profile-create">
+    <div class="profile-create-title">Or create a new player</div>
     <input id="new-profile-name" type="text" maxlength="14" placeholder="Type a name..." />
     <div id="avatar-picker" class="avatar-picker"></div>
     <button id="btn-create-profile" class="btn btn-primary">Create Player</button>
@@ -91,6 +95,9 @@
       <div id="target-prompt" class="target-prompt"></div>
       <div id="typed-echo" class="typed-echo"></div>
     </div>
+    <div id="countdown" class="countdown-overlay" style="display:none;">
+      <div id="countdown-text" class="countdown-text">3</div>
+    </div>
   </div>
 
   <div id="keyboard" class="keyboard"></div>
@@ -101,6 +108,9 @@
 <section id="screen-summary" class="screen">
   <div class="summary-card">
     <h2 id="summary-title">Great job! 🎉</h2>
+    <div id="star-rating" class="star-rating">
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+    </div>
     <div class="summary-stats">
       <div class="big-stat"><div class="big-value" id="sum-wpm">0</div><div class="big-label">WPM</div></div>
       <div class="big-stat"><div class="big-value" id="sum-acc">0%</div><div class="big-label">Accuracy</div></div>

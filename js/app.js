@@ -10,9 +10,23 @@ function escapeHtml(s) {
 }
 
 function updateHud(stats) {
-  document.getElementById("hud-wpm").textContent = stats.wpm();
-  document.getElementById("hud-acc").textContent = stats.accuracy() + "%";
-  document.getElementById("hud-streak").textContent = stats.streak;
+  setHudStat("hud-wpm", stats.wpm());
+  setHudStat("hud-acc", stats.accuracy() + "%");
+  setHudStat("hud-streak", stats.streak);
+}
+function setHudStat(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const old = el.textContent;
+  const next = String(value);
+  if (old !== next) {
+    el.textContent = next;
+    el.classList.remove("bumped");
+    // Force reflow so re-adding triggers the animation.
+    void el.offsetWidth;
+    el.classList.add("bumped");
+    setTimeout(() => el.classList.remove("bumped"), 180);
+  }
 }
 
 function makeBgStars(w, h, theme) {
@@ -79,12 +93,15 @@ const App = {
   currentModeInstance: null,
   lastSessionStats: null,
   lastSessionLevel: 1,
+  _startToken: 0,
 
   start() {
     State.load();
     Sound.setMuted(!!State.data.muted);
     KB.init("keyboard");
     this._wireGlobalEvents();
+    this._animateTitle();
+    this._spawnBgDecorations(State.current ? (State.current.theme || "space") : "space");
     if (State.data.profiles.length === 0) {
       this._renderProfileScreen();
       showScreen("profile");
@@ -93,6 +110,47 @@ const App = {
     } else {
       this._renderProfileScreen();
       showScreen("profile");
+    }
+  },
+
+  // Wrap each title letter in a span with a staggered bounce delay.
+  _animateTitle() {
+    const t = document.getElementById("game-title");
+    if (!t) return;
+    const text = t.textContent;
+    t.textContent = "";
+    let i = 0;
+    for (const ch of text) {
+      const span = document.createElement("span");
+      span.className = "title-letter";
+      span.textContent = ch;
+      span.style.animationDelay = (i * 0.07) + "s";
+      t.appendChild(span);
+      i++;
+    }
+  },
+
+  // Floating background emoji per theme; cheap CSS animations only.
+  _spawnBgDecorations(themeId) {
+    const root = document.getElementById("bg-decorations");
+    if (!root) return;
+    root.innerHTML = "";
+    const t = THEMES[themeId] || THEMES.space;
+    const pool = (t.collectibles || []).concat(t.background.filter(c => c.length > 0 && c !== "·" && c !== "."));
+    if (!pool.length) return;
+    const count = 22;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement("span");
+      el.className = "bg-deco";
+      el.textContent = pool[Math.floor(Math.random() * pool.length)];
+      el.style.left = Math.random() * 100 + "vw";
+      const dur = 14 + Math.random() * 22;
+      const delay = -Math.random() * dur;
+      el.style.animationDuration = dur + "s";
+      el.style.animationDelay = delay + "s";
+      el.style.fontSize = (18 + Math.random() * 26) + "px";
+      el.style.opacity = (0.10 + Math.random() * 0.18).toFixed(2);
+      root.appendChild(el);
     }
   },
 
@@ -115,6 +173,9 @@ const App = {
     document.getElementById("btn-quit-game").addEventListener("click", () => {
       if (this.currentModeInstance) this.currentModeInstance.destroy();
       this.currentModeInstance = null;
+      this._startToken++;
+      const overlay = document.getElementById("countdown");
+      if (overlay) overlay.style.display = "none";
       this._enterMenu();
     });
 
@@ -241,6 +302,7 @@ const App = {
     this.selectedTheme = State.current.theme || "space";
     if (this.selectedLevel > State.current.unlockedLevel) this.selectedLevel = State.current.unlockedLevel;
     applyTheme(this.selectedTheme);
+    this._spawnBgDecorations(this.selectedTheme);
 
     document.getElementById("menu-avatar").textContent = State.current.avatar;
     document.getElementById("menu-player-name").textContent = State.current.name;
@@ -292,6 +354,7 @@ const App = {
         this.selectedTheme = id;
         State.setTheme(id);
         applyTheme(id);
+        this._spawnBgDecorations(id);
         this._renderThemePicker();
       });
       root.appendChild(btn);
@@ -327,6 +390,7 @@ const App = {
     };
 
     if (this.currentModeInstance) this.currentModeInstance.destroy();
+    this.currentModeInstance = null;
 
     let mode;
     switch (modeName) {
@@ -336,10 +400,46 @@ const App = {
       case "race":     mode = RaceMode;     break;
       default:         mode = PracticeMode;
     }
-    // Each mode module is a single object; shallow-clone so instance state is isolated per session.
-    this.currentModeInstance = Object.assign({}, mode);
-    this.currentModeInstance.init(ctx);
     this.lastSessionLevel = lesson.id;
+
+    // Show a Get Ready countdown, then init the mode. We only assign
+    // currentModeInstance once init is complete so stray keystrokes during
+    // the countdown don't hit an uninitialized object.
+    const token = ++this._startToken;
+    this._countdown(() => {
+      if (token !== this._startToken) return;        // user quit / restarted
+      const instance = Object.assign({}, mode);
+      instance.init(ctx);
+      this.currentModeInstance = instance;
+    });
+  },
+
+  // Shows 3 / 2 / 1 / GO! overlay and calls cb when done.
+  _countdown(cb) {
+    const overlay = document.getElementById("countdown");
+    const text = document.getElementById("countdown-text");
+    if (!overlay || !text) { cb(); return; }
+    const sequence = ["3", "2", "1", "GO!"];
+    let i = 0;
+    overlay.style.display = "flex";
+    const tick = () => {
+      if (i >= sequence.length) {
+        overlay.style.display = "none";
+        cb();
+        return;
+      }
+      const val = sequence[i];
+      text.textContent = val;
+      text.classList.toggle("go", val === "GO!");
+      // Restart the pop animation.
+      text.style.animation = "none";
+      void text.offsetWidth;
+      text.style.animation = "";
+      Sound.correct();
+      i++;
+      setTimeout(tick, val === "GO!" ? 600 : 700);
+    };
+    tick();
   },
 
   _resizeCanvas() {
@@ -382,7 +482,55 @@ const App = {
     document.getElementById("summary-title").textContent =
       stats.accuracy() >= 80 ? "Great job! 🎉" : "Keep practicing! 💪";
 
+    // Star rating: 3 stars = high accuracy + speed, 2 = solid, 1 = participation.
+    this._renderStarRating(stats);
+
     showScreen("summary");
+    this._shootConfetti(stats);
+  },
+
+  _renderStarRating(stats) {
+    const wrap = document.getElementById("star-rating");
+    if (!wrap) return;
+    const acc = stats.accuracy();
+    const wpm = stats.wpm();
+    let stars = 1;
+    if (acc >= 75) stars = 2;
+    if (acc >= 90 && wpm >= 18) stars = 3;
+    // Special case: short sessions shouldn't auto-award 3 stars on a single correct char.
+    if (stats.totalChars < 10) stars = Math.min(stars, 1);
+
+    const els = wrap.querySelectorAll(".star");
+    els.forEach(e => e.classList.remove("lit"));
+    for (let i = 0; i < stars; i++) {
+      setTimeout(() => els[i] && els[i].classList.add("lit"), 200 + i * 220);
+    }
+  },
+
+  _shootConfetti(stats) {
+    const card = document.querySelector(".summary-card");
+    if (!card) return;
+    // Remove old pieces.
+    card.querySelectorAll(".confetti-piece").forEach(p => p.remove());
+    // Only fire celebratory confetti on a decent run.
+    if (stats.accuracy() < 60) return;
+    const colors = ["#ff5c8a", "#5eead4", "#fbbf24", "#a78bfa", "#5cffa7", "#7ee7ff"];
+    const count = stats.accuracy() >= 90 ? 60 : 30;
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement("div");
+      piece.className = "confetti-piece";
+      const angle = Math.random() * Math.PI * 2;
+      const dist  = 140 + Math.random() * 240;
+      const cx = Math.cos(angle) * dist;
+      const cy = Math.sin(angle) * dist * 0.7 + 80;
+      piece.style.setProperty("--cx", cx + "px");
+      piece.style.setProperty("--cy", cy + "px");
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDelay = (Math.random() * 0.15) + "s";
+      piece.style.transform = `translate(-50%, -50%) rotate(${Math.random() * 360}deg)`;
+      card.appendChild(piece);
+      setTimeout(() => piece.remove(), 1700);
+    }
   },
 };
 
