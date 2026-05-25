@@ -86,7 +86,10 @@
       <div class="stat"><span class="stat-label">Streak</span><span class="stat-value" id="hud-streak">0</span></div>
       <div class="stat"><span class="stat-label" id="hud-extra-label">Score</span><span class="stat-value" id="hud-extra">0</span></div>
     </div>
-    <button class="btn btn-ghost" id="btn-mute-game">🔊</button>
+    <div class="hud-buttons">
+      <button class="btn btn-ghost" id="btn-pause-game" title="Pause (Esc)">⏸</button>
+      <button class="btn btn-ghost" id="btn-mute-game">🔊</button>
+    </div>
   </header>
 
   <div class="play-area">
@@ -98,6 +101,18 @@
     <div id="countdown" class="countdown-overlay" style="display:none;">
       <div id="countdown-text" class="countdown-text">3</div>
     </div>
+    <div id="pause-overlay" class="pause-overlay" style="display:none;">
+      <div class="pause-card">
+        <div class="pause-title">⏸ Paused</div>
+        <div class="pause-sub">Take a break! Stretch your fingers.</div>
+        <div class="pause-actions">
+          <button class="btn btn-primary" id="btn-resume">▶ Resume</button>
+          <button class="btn" id="btn-quit-from-pause">← Back to Menu</button>
+        </div>
+        <div class="pause-hint">Press <kbd>Esc</kbd> to resume</div>
+      </div>
+    </div>
+    <div id="achievement-toast" class="achievement-toast"></div>
   </div>
 
   <div id="keyboard" class="keyboard"></div>
