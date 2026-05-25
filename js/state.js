@@ -39,8 +39,12 @@ const State = {
       bestWpm: 0,
       bestAccuracy: 0,
       totalChars: 0,
+      wordsTyped: 0,
+      sessionsPlayed: 0,
+      daysPlayed: [],            // ["2026-05-25", ...]
+      bestWpmByMode: {},
       badges: [],
-      perKey: {}, // long-term per-key stats
+      perKey: {},                // long-term per-key stats
     };
     this.data.profiles.push(profile);
     this.save();
@@ -69,14 +73,23 @@ const State = {
   },
 
   /* Apply a finished session's results to the active profile. */
-  applySession(s, levelPlayed) {
+  applySession(s, levelPlayed, modeName) {
     if (!this.current) return;
     const p = this.current;
     const wpm = s.wpm();
     const acc = s.accuracy();
     p.totalChars += s.correctChars;
+    p.wordsTyped = (p.wordsTyped || 0) + (s.wordsCompleted || 0);
+    p.sessionsPlayed = (p.sessionsPlayed || 0) + 1;
+    if (!p.daysPlayed) p.daysPlayed = [];
+    const today = new Date().toISOString().slice(0, 10);
+    if (!p.daysPlayed.includes(today)) p.daysPlayed.push(today);
     if (wpm > p.bestWpm) p.bestWpm = wpm;
     if (acc > p.bestAccuracy) p.bestAccuracy = acc;
+    if (modeName) {
+      if (!p.bestWpmByMode) p.bestWpmByMode = {};
+      if (wpm > (p.bestWpmByMode[modeName] || 0)) p.bestWpmByMode[modeName] = wpm;
+    }
 
     // Merge per-key stats.
     for (const k in s.perKey) {
@@ -86,8 +99,10 @@ const State = {
     }
 
     // Unlock next level if accuracy >= 80 and at least 20 chars typed.
+    let leveledUp = false;
     if (acc >= 80 && s.correctChars >= 20 && levelPlayed === p.unlockedLevel && p.unlockedLevel < LESSONS.length) {
       p.unlockedLevel++;
+      leveledUp = true;
       Sound.levelUp();
     }
 
@@ -98,7 +113,7 @@ const State = {
     }
 
     this.save();
-    return { wpm, accuracy: acc, badges: earned };
+    return { wpm, accuracy: acc, badges: earned, leveledUp };
   },
 
   toggleMute() {

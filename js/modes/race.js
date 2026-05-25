@@ -21,7 +21,7 @@ const RaceMode = {
     this.scrollOffset = 0;
 
     KB.setLevel(ctx.level);
-    this._setHudExtra("Lap", `0/${this.GOAL_SENTENCES}`);
+    setHudExtra("Lap", `0/${this.GOAL_SENTENCES}`);
     this._loadSentence();
     this._tick = this._tick.bind(this);
     this._raf = requestAnimationFrame(this._tick);
@@ -88,7 +88,7 @@ const RaceMode = {
           this.ctx.canvas.height / 2,
           "+" + points, "#5cffa7");
         this.sentenceIdx++;
-        this._setHudExtra("Lap", `${this.sentenceIdx}/${this.GOAL_SENTENCES}`);
+        setHudExtra("Lap", `${this.sentenceIdx}/${this.GOAL_SENTENCES}`);
         if (this.sentenceIdx >= this.GOAL_SENTENCES) {
           Sound.win();
           setTimeout(() => this._finish(), 700);
@@ -111,17 +111,8 @@ const RaceMode = {
     const c = this.ctx.canvas;
     const x = 80 + this.playerProgress * (c.width - 160);
     const y = c.height / 2 + 20;
-    const emojis = this.ctx.theme.collectibles;
-    for (let i = 0; i < 18; i++) {
-      this.particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 8,
-        vy: -Math.random() * 6 - 1,
-        life: 44, max: 44,
-        emoji: emojis[Math.floor(Math.random() * emojis.length)],
-        rot: 0, rotV: (Math.random() - 0.5) * 0.4,
-      });
-    }
+    const palette = ["#5cffa7", "#7ee7ff", "#ffd24a"];
+    for (let i = 0; i < 3; i++) burstDots(this.particles, x, y, 6, palette[i]);
   },
 
   _tick() {
@@ -224,24 +215,11 @@ const RaceMode = {
     g.textAlign = "center";
     g.fillText(`Sentence ${this.sentenceIdx + 1} of ${this.GOAL_SENTENCES}`, w / 2, barY - 6);
 
-    // Particles.
-    for (const p of this.particles) {
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(p.rot);
-      g.globalAlpha = Math.max(0, p.life / p.max);
-      g.font = "22px serif";
-      g.textAlign = "center";
-      g.fillText(p.emoji, 0, 0);
-      g.restore();
-      p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.rot += p.rotV; p.life--;
-    }
-    g.globalAlpha = 1;
-    this.particles = this.particles.filter(p => p.life > 0);
+    this.particles = drawDots(g, this.particles);
 
     this.popups = drawPopups(g, this.popups);
     this._drawComboBadge(g, w);
-    this._setHudExtra("Score", this.stats.score);
+    setHudExtra("Score", this.stats.score);
 
     g.restore();
     this._raf = requestAnimationFrame(this._tick);
@@ -279,10 +257,6 @@ const RaceMode = {
     g.restore();
   },
 
-  _setHudExtra(label, val) {
-    document.getElementById("hud-extra-label").textContent = label;
-    document.getElementById("hud-extra").textContent = val;
-  },
 
   _finish() {
     if (this.finished) return;

@@ -21,7 +21,7 @@ const PracticeMode = {
 
     KB.setLevel(ctx.level);
 
-    this._setHudExtra("Words", `0/${this.WORDS_PER_SESSION}`);
+    setHudExtra("Words", `0/${this.WORDS_PER_SESSION}`);
     this._loadWord();
     this._tick = this._tick.bind(this);
     this._raf = requestAnimationFrame(this._tick);
@@ -86,7 +86,7 @@ const PracticeMode = {
           "+" + points + "  " + target.toUpperCase() + "!",
           "#5cffa7");
         this.wordIdx++;
-        this._setHudExtra("Words", `${this.wordIdx}/${this.WORDS_PER_SESSION}`);
+        setHudExtra("Words", `${this.wordIdx}/${this.WORDS_PER_SESSION}`);
         setTimeout(() => this._loadWord(), 350);
       } else {
         KB.highlightNext(target[this.typed.length]);
@@ -107,17 +107,9 @@ const PracticeMode = {
 
   _spawnConfetti() {
     const c = this.ctx.canvas;
-    const w = c.width, h = c.height;
-    for (let i = 0; i < 20; i++) {
-      this.particles.push({
-        x: w / 2,
-        y: h / 2,
-        vx: (Math.random() - 0.5) * 10,
-        vy: -Math.random() * 8 - 2,
-        life: 70, max: 70,
-        emoji: this.ctx.theme.collectibles[i % this.ctx.theme.collectibles.length],
-        rot: 0, rotV: (Math.random() - 0.5) * 0.4,
-      });
+    const palette = ["#5cffa7", "#7ee7ff", "#ffd24a", "#ff89e1"];
+    for (let i = 0; i < palette.length; i++) {
+      burstDots(this.particles, c.width / 2, c.height / 2, 6, palette[i]);
     }
   },
 
@@ -165,20 +157,7 @@ const PracticeMode = {
     g.textAlign = "center";
     g.fillText(`${this.wordIdx} / ${this.WORDS_PER_SESSION} words`, w / 2, barY - 6);
 
-    // Confetti.
-    for (const p of this.particles) {
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(p.rot);
-      g.globalAlpha = Math.max(0, p.life / p.max);
-      g.font = "26px serif";
-      g.textAlign = "center";
-      g.fillText(p.emoji, 0, 0);
-      g.restore();
-      p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.rot += p.rotV; p.life--;
-    }
-    g.globalAlpha = 1;
-    this.particles = this.particles.filter(p => p.life > 0);
+    this.particles = drawDots(g, this.particles);
 
     this.popups = drawPopups(g, this.popups);
     this._drawComboBadge(g, w);
@@ -216,10 +195,6 @@ const PracticeMode = {
     g.restore();
   },
 
-  _setHudExtra(label, val) {
-    document.getElementById("hud-extra-label").textContent = label;
-    document.getElementById("hud-extra").textContent = val;
-  },
 
   _finish() {
     if (this.finished) return;

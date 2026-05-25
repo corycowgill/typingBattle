@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Typing Battle - Learn to Type!</title>
+<title>Cowgill Typing Tutorial Battle 2000!</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="theme-space">
@@ -14,7 +14,9 @@
 <!-- ====== Profile Screen ====== -->
 <section id="screen-profile" class="screen active">
   <div class="hero">
-    <h1 class="title" id="game-title">⌨️ Typing Battle</h1>
+    <div class="title-eyebrow">⌨ ⚡ ⌨</div>
+    <h1 class="title" id="game-title">Cowgill Typing Tutorial Battle 2000!</h1>
+    <div class="title-underline"></div>
     <p class="subtitle">Pick your player to start typing!</p>
   </div>
   <div id="profile-list" class="profile-list"></div>
@@ -30,13 +32,14 @@
 <section id="screen-menu" class="screen">
   <header class="topbar">
     <button class="btn btn-ghost" id="btn-back-to-profiles">← Players</button>
-    <div class="player-tag">
+    <button class="player-tag player-tag-btn" id="btn-open-profile">
       <span id="menu-avatar" class="avatar-big">🚀</span>
       <div>
         <div class="player-name" id="menu-player-name">Player</div>
         <div class="player-stats" id="menu-player-stats">Level 1 · Best WPM: 0</div>
       </div>
-    </div>
+      <span class="player-tag-arrow">›</span>
+    </button>
     <button class="btn btn-ghost" id="btn-mute">🔊</button>
   </header>
 
@@ -46,6 +49,11 @@
       <div class="mode-emoji">📚</div>
       <div class="mode-name">Practice</div>
       <div class="mode-desc">Calm drill. Learn the keys.</div>
+    </button>
+    <button class="mode-card" data-mode="wordpop">
+      <div class="mode-emoji">🫧</div>
+      <div class="mode-name">Word Pop</div>
+      <div class="mode-desc">Pop letters before they fade!</div>
     </button>
     <button class="mode-card" data-mode="falling">
       <div class="mode-emoji">☄️</div>
@@ -148,6 +156,42 @@
   </div>
 </section>
 
+<!-- ====== Lesson Intro Modal ====== -->
+<div id="lesson-intro" class="modal-backdrop" style="display:none;">
+  <div class="lesson-intro-card">
+    <div class="lesson-intro-num" id="li-num">LEVEL 1</div>
+    <div class="lesson-intro-name" id="li-name">Home Row</div>
+    <div class="lesson-intro-tip" id="li-tip">Rest your fingers on a s d f and j k l ;</div>
+    <div class="lesson-intro-newkeys">
+      <div class="lesson-intro-label">New keys this level</div>
+      <div id="li-keys" class="lesson-intro-keys-row"></div>
+    </div>
+    <div class="lesson-intro-actions">
+      <button class="btn btn-primary" id="btn-lesson-go">Let's go!  ▶</button>
+      <button class="btn btn-ghost" id="btn-lesson-cancel">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Profile Detail Modal ====== -->
+<div id="profile-detail" class="modal-backdrop" style="display:none;">
+  <div class="profile-detail-card">
+    <button class="pd-close" id="btn-close-profile" aria-label="Close">✕</button>
+    <div class="pd-header">
+      <span class="pd-avatar" id="pd-avatar">🚀</span>
+      <div class="pd-meta">
+        <div class="pd-name" id="pd-name">Player</div>
+        <div class="pd-level" id="pd-level">Level 1 unlocked</div>
+      </div>
+    </div>
+    <div class="pd-stats" id="pd-stats"></div>
+    <div class="pd-section-title">Lifetime key accuracy</div>
+    <div id="pd-heatmap" class="heatmap"></div>
+    <div class="pd-section-title">Badges earned</div>
+    <div id="pd-badges" class="badges pd-badges-grid"></div>
+  </div>
+</div>
+
 <!-- Scripts: load in dependency order. No ES modules so file:// works everywhere. -->
 <script src="js/data.js"></script>
 <script src="js/themes.js"></script>
@@ -156,6 +200,7 @@
 <script src="js/state.js"></script>
 <script src="js/keyboard.js"></script>
 <script src="js/modes/practice.js"></script>
+<script src="js/modes/wordpop.js"></script>
 <script src="js/modes/falling.js"></script>
 <script src="js/modes/shooter.js"></script>
 <script src="js/modes/race.js"></script>

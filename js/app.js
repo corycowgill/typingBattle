@@ -17,40 +17,54 @@ function updateHud(stats) {
 function setHudStat(id, value) {
   const el = document.getElementById(id);
   if (!el) return;
-  const old = el.textContent;
   const next = String(value);
-  if (old !== next) {
-    el.textContent = next;
-    el.classList.remove("bumped");
-    // Force reflow so re-adding triggers the animation.
-    void el.offsetWidth;
-    el.classList.add("bumped");
-    setTimeout(() => el.classList.remove("bumped"), 180);
+  if (el.textContent === next) return;          // skip DOM writes on no-op
+  el.textContent = next;
+  el.classList.remove("bumped");
+  void el.offsetWidth;
+  el.classList.add("bumped");
+  setTimeout(() => el.classList.remove("bumped"), 180);
+}
+// Caches text content so we skip DOM writes when value hasn't changed.
+const _hudExtraCache = { label: null, val: null };
+function setHudExtra(label, val) {
+  const v = String(val);
+  if (_hudExtraCache.label !== label) {
+    document.getElementById("hud-extra-label").textContent = label;
+    _hudExtraCache.label = label;
+  }
+  if (_hudExtraCache.val !== v) {
+    document.getElementById("hud-extra").textContent = v;
+    _hudExtraCache.val = v;
   }
 }
 
-function makeBgStars(w, h, theme) {
+function makeBgStars(w, h /*, theme*/) {
+  // Cheap dot-stars; no emoji glyphs (emoji rendering is the dominant cost).
   const stars = [];
-  const count = 80;
+  const count = 50;
   for (let i = 0; i < count; i++) {
     stars.push({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: 0.5 + Math.random() * 1.8,
+      r: 0.6 + Math.random() * 1.6,
       speed: 0.1 + Math.random() * 0.4,
-      ch: theme.background[Math.floor(Math.random() * theme.background.length)],
+      ph: Math.random() * Math.PI * 2,
     });
   }
   return stars;
 }
 
 function drawBgStars(g, stars, w, h) {
-  g.fillStyle = "rgba(255,255,255,0.55)";
-  g.textAlign = "center";
-  for (const s of stars) {
-    g.globalAlpha = 0.35 + Math.sin((performance.now() / 1000 + s.x) * s.speed) * 0.25;
-    g.font = `${10 + s.r * 6}px serif`;
-    g.fillText(s.ch, s.x, s.y);
+  // Single fillStyle, no font reassignment, single fill batch via arcs.
+  const now = performance.now() / 1000;
+  g.fillStyle = "#ffffff";
+  for (let i = 0; i < stars.length; i++) {
+    const s = stars[i];
+    g.globalAlpha = 0.35 + Math.sin(now * s.speed + s.ph) * 0.22;
+    g.beginPath();
+    g.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    g.fill();
     s.y += s.speed * 0.4;
     if (s.y > h + 10) { s.y = -10; s.x = Math.random() * w; }
   }
@@ -58,16 +72,16 @@ function drawBgStars(g, stars, w, h) {
 }
 
 function drawBackgroundStars(g, theme, w, h) {
-  // Static-y subtle background used in Practice mode.
-  g.fillStyle = "rgba(255,255,255,0.4)";
-  g.textAlign = "center";
+  // Practice-mode background dots. Same cheap dot rendering as bg stars.
   const t = performance.now() / 1000;
-  for (let i = 0; i < 50; i++) {
+  g.fillStyle = "#ffffff";
+  for (let i = 0; i < 36; i++) {
     const x = (i * 137) % w;
     const y = ((i * 53) + (t * 20)) % h;
-    g.globalAlpha = 0.2 + 0.2 * Math.sin(t + i);
-    g.font = "16px serif";
-    g.fillText(theme.background[i % theme.background.length], x, y);
+    g.globalAlpha = 0.18 + 0.18 * Math.sin(t + i);
+    g.beginPath();
+    g.arc(x, y, 1.4, 0, Math.PI * 2);
+    g.fill();
   }
   g.globalAlpha = 1;
 }
@@ -331,22 +345,81 @@ function spawnPopup(arr, x, y, text, color) {
   arr.push({ x, y, text, color: color || "#fff", vy: -2.2, life: 55, max: 55 });
 }
 function drawPopups(g, arr) {
+  if (!arr.length) return arr;
+  // Set styles ONCE outside the loop (font reassignment is expensive).
+  g.font = "900 26px ui-rounded, system-ui, sans-serif";
+  g.lineWidth = 4;
+  g.strokeStyle = "rgba(0,0,0,0.55)";
   g.textAlign = "center";
-  for (const p of arr) {
+  let alive = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const p = arr[i];
     const alpha = Math.max(0, p.life / p.max);
     g.globalAlpha = alpha;
-    g.font = "900 26px ui-rounded, system-ui, sans-serif";
-    g.lineWidth = 4;
-    g.strokeStyle = "rgba(0,0,0,0.55)";
     g.strokeText(p.text, p.x, p.y);
     g.fillStyle = p.color;
     g.fillText(p.text, p.x, p.y);
     p.y += p.vy;
     p.vy *= 0.96;
     p.life--;
+    if (p.life > 0) arr[alive++] = p;
+  }
+  arr.length = alive;
+  g.globalAlpha = 1;
+  return arr;
+}
+
+/* ---------- Cheap dot-particle system (replaces emoji bursts) ----------
+   Burst particles cost a fortune when rendered as emoji glyphs
+   (save/translate/rotate/fillText/restore per particle × ~60 particles
+   × 60 frames).  Use plain coloured arcs instead - 10-20× cheaper. */
+
+const MAX_PARTICLES = 80;
+
+function burstDots(arr, x, y, count, color) {
+  count = Math.min(count, MAX_PARTICLES - arr.length);
+  if (count <= 0) return;
+  for (let i = 0; i < count; i++) {
+    arr.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8 - 1,
+      life: 36, max: 36,
+      r: 2 + Math.random() * 3,
+      color: color || "#ffffff",
+    });
+  }
+}
+
+function drawDots(g, arr) {
+  if (!arr.length) return arr;
+  let alive = 0;
+  // Group by color to minimize fillStyle changes - simple approach: sort.
+  for (let i = 0; i < arr.length; i++) {
+    const p = arr[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.18;
+    p.life--;
+    if (p.life > 0) arr[alive++] = p;
+  }
+  arr.length = alive;
+  if (!alive) return arr;
+
+  // Sort by color to reduce fillStyle changes.
+  arr.sort((a, b) => a.color < b.color ? -1 : 1);
+  let lastColor = null;
+  for (let i = 0; i < arr.length; i++) {
+    const p = arr[i];
+    const alpha = Math.max(0, p.life / p.max);
+    g.globalAlpha = alpha;
+    if (p.color !== lastColor) { g.fillStyle = p.color; lastColor = p.color; }
+    g.beginPath();
+    g.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    g.fill();
   }
   g.globalAlpha = 1;
-  return arr.filter(p => p.life > 0);
+  return arr;
 }
 
 function bumpShake(state, amount) {
@@ -513,7 +586,28 @@ const App = {
     });
 
     document.querySelectorAll(".mode-card").forEach(card => {
-      card.addEventListener("click", () => this._startGame(card.dataset.mode));
+      card.addEventListener("click", () => this._showLessonIntro(card.dataset.mode));
+    });
+    document.getElementById("btn-lesson-go").addEventListener("click", () => {
+      document.getElementById("lesson-intro").style.display = "none";
+      if (this._pendingMode) {
+        const m = this._pendingMode; this._pendingMode = null;
+        this._startGame(m);
+      }
+    });
+    document.getElementById("btn-lesson-cancel").addEventListener("click", () => {
+      document.getElementById("lesson-intro").style.display = "none";
+      this._pendingMode = null;
+    });
+
+    document.getElementById("btn-open-profile").addEventListener("click", () => this._openProfileDetail());
+    document.getElementById("btn-close-profile").addEventListener("click", () => {
+      document.getElementById("profile-detail").style.display = "none";
+    });
+    document.getElementById("profile-detail").addEventListener("click", (e) => {
+      if (e.target.id === "profile-detail") {
+        document.getElementById("profile-detail").style.display = "none";
+      }
     });
 
     document.getElementById("btn-quit-game").addEventListener("click", () => this._quitToMenu());
@@ -754,6 +848,96 @@ const App = {
     });
   },
 
+  /* ---------- Lesson intro modal ---------- */
+  _showLessonIntro(modeName) {
+    this._pendingMode = modeName;
+    const lesson = LESSONS.find(l => l.id === this.selectedLevel);
+    if (!lesson) { this._startGame(modeName); return; }
+    document.getElementById("li-num").textContent = "LEVEL " + lesson.id;
+    document.getElementById("li-name").textContent = lesson.name;
+    document.getElementById("li-tip").textContent = lesson.intro || "";
+
+    // Diff against previous level's keys to show only the NEW ones.
+    const prev = LESSONS.find(l => l.id === lesson.id - 1);
+    const prevSet = new Set((prev ? prev.keys : "").toLowerCase().split(""));
+    const newKeys = lesson.keys.split("").filter(k => !prevSet.has(k.toLowerCase()));
+
+    const keysWrap = document.getElementById("li-keys");
+    keysWrap.innerHTML = "";
+    // Cap the visible set (capitals lesson would otherwise dump 26 keys).
+    const display = newKeys.length > 14 ? newKeys.slice(0, 14).concat("…") : newKeys;
+    display.forEach(k => {
+      const el = document.createElement("div");
+      const finger = FINGER_MAP[k.toLowerCase()] || "index";
+      el.className = "li-key f-" + finger;
+      el.textContent = k === " " ? "␣" : (k === "…" ? "…" : k);
+      keysWrap.appendChild(el);
+    });
+    if (!newKeys.length) {
+      const el = document.createElement("div");
+      el.style.opacity = "0.6";
+      el.style.fontSize = "13px";
+      el.style.fontWeight = "600";
+      el.textContent = "All letters — full sentence practice!";
+      keysWrap.appendChild(el);
+    }
+
+    document.getElementById("lesson-intro").style.display = "flex";
+  },
+
+  /* ---------- Profile detail modal ---------- */
+  _openProfileDetail() {
+    const p = State.current;
+    if (!p) return;
+    document.getElementById("pd-avatar").textContent = p.avatar;
+    document.getElementById("pd-name").textContent = p.name;
+    document.getElementById("pd-level").textContent = `Level ${p.unlockedLevel} unlocked · ${(p.daysPlayed || []).length} day${(p.daysPlayed || []).length === 1 ? "" : "s"} played`;
+
+    const totalChars = p.totalChars || 0;
+    const wordsTyped = p.wordsTyped || 0;
+    const sessions = p.sessionsPlayed || 0;
+    const days = (p.daysPlayed || []).length;
+    const cells = [
+      { val: p.bestWpm || 0,       lbl: "Best WPM" },
+      { val: (p.bestAccuracy || 0) + "%", lbl: "Best Acc" },
+      { val: totalChars.toLocaleString(), lbl: "Chars typed" },
+      { val: wordsTyped.toLocaleString(), lbl: "Words typed" },
+      { val: sessions,             lbl: "Sessions" },
+      { val: days,                 lbl: "Days played" },
+    ];
+    const statsRoot = document.getElementById("pd-stats");
+    statsRoot.innerHTML = "";
+    cells.forEach(c => {
+      const el = document.createElement("div");
+      el.className = "pd-stat";
+      el.innerHTML = `<div class="pd-stat-val">${c.val}</div><div class="pd-stat-lbl">${c.lbl}</div>`;
+      statsRoot.appendChild(el);
+    });
+
+    // Render heatmap into the profile detail container.
+    const hmRoot = document.getElementById("pd-heatmap");
+    hmRoot.id = "heatmap"; // temporarily use the same id renderKeyHeatmap targets
+    renderKeyHeatmap(p.perKey || {});
+    hmRoot.id = "pd-heatmap";
+
+    const badgesRoot = document.getElementById("pd-badges");
+    badgesRoot.innerHTML = "";
+    if (!p.badges || !p.badges.length) {
+      const e = document.createElement("div");
+      e.className = "pd-empty";
+      e.textContent = "Play a few games to earn your first badge!";
+      badgesRoot.appendChild(e);
+    } else {
+      p.badges.forEach(b => {
+        const el = document.createElement("div");
+        el.className = "badge";
+        el.textContent = b;
+        badgesRoot.appendChild(el);
+      });
+    }
+    document.getElementById("profile-detail").style.display = "flex";
+  },
+
   /* ---------- Game lifecycle ---------- */
   _startGame(modeName) {
     this.selectedMode = modeName;
@@ -788,6 +972,7 @@ const App = {
     let mode;
     switch (modeName) {
       case "practice": mode = PracticeMode; break;
+      case "wordpop":  mode = WordPopMode;  break;
       case "falling":  mode = FallingMode;  break;
       case "shooter":  mode = ShooterMode;  break;
       case "race":     mode = RaceMode;     break;
@@ -845,7 +1030,7 @@ const App = {
     this.lastSessionStats = stats;
     this.currentModeInstance = null;
     Sound.stopBgMusic();
-    const result = State.applySession(stats, levelPlayed);
+    const result = State.applySession(stats, levelPlayed, this.selectedMode);
     Sound.win();
     document.getElementById("sum-wpm").textContent = stats.wpm();
     document.getElementById("sum-acc").textContent = stats.accuracy() + "%";

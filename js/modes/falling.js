@@ -40,7 +40,7 @@ const FallingMode = {
     this.activeEffects = { freeze: 0, double: 0, slow: 0 };
 
     KB.setLevel(ctx.level);
-    this._setHudExtra("Lives", "❤❤❤");
+    setHudExtra("Lives", "❤❤❤");
     this._renderTarget();
     this._tick = this._tick.bind(this);
     this._raf = requestAnimationFrame(this._tick);
@@ -225,7 +225,7 @@ const FallingMode = {
       case "slow":   this.activeEffects.slow   = 360; break; // ~6s
       case "heal":
         this.lives = Math.min(3, this.lives + 1);
-        this._setHudExtra("Lives", "❤".repeat(this.lives));
+        setHudExtra("Lives", "❤".repeat(this.lives));
         break;
     }
   },
@@ -239,36 +239,20 @@ const FallingMode = {
     Sound.bossDefeat();
     bumpShake(this, 22);
     spawnPopup(this.popups, e.x, e.y - 30, "+" + points + " BOSS DEFEATED!", "#ffd24a");
-    // Big celebratory burst.
-    const emojis = this.ctx.theme.collectibles;
-    for (let i = 0; i < 60; i++) {
-      this.particles.push({
-        x: e.x, y: e.y,
-        vx: (Math.random() - 0.5) * 16,
-        vy: (Math.random() - 0.5) * 16 - 3,
-        life: 90, max: 90,
-        emoji: emojis[i % emojis.length],
-        rot: 0, rotV: (Math.random() - 0.5) * 0.5,
-      });
+    // Big celebratory burst of cheap coloured dots (much faster than emoji).
+    const palette = ["#ffd24a", "#ff89e1", "#7ee7ff", "#5cffa7", "#ff6b8a"];
+    for (let i = 0; i < 4; i++) {
+      burstDots(this.particles, e.x, e.y, 8, palette[i % palette.length]);
     }
     this.bossDefeated = true;
     this.boss = null;
-    // Clear remaining enemies so they don't kill the win moment.
     this.entities = [];
     this.powerups = [];
     setTimeout(() => this._finish(), 1600);
   },
 
-  _burst(x, y, emoji) {
-    for (let i = 0; i < 14; i++) {
-      this.particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 7,
-        vy: (Math.random() - 0.5) * 7 - 1,
-        life: 45, max: 45,
-        emoji, rot: 0, rotV: (Math.random() - 0.5) * 0.3,
-      });
-    }
+  _burst(x, y /*, emoji*/) {
+    burstDots(this.particles, x, y, 8, "#5cffa7");
   },
 
   _loseLife() {
@@ -277,7 +261,7 @@ const FallingMode = {
     bumpShake(this, 16);
     this.lifeBlink = 24;
     spawnPopup(this.popups, this.ctx.canvas.width / 2, this.ctx.canvas.height / 2, "-1 ❤", "#ff6b8a");
-    this._setHudExtra("Lives", "❤".repeat(Math.max(0, this.lives)));
+    setHudExtra("Lives", "❤".repeat(Math.max(0, this.lives)));
     if (this.lives <= 0) this._finish();
   },
 
@@ -379,20 +363,8 @@ const FallingMode = {
     g.fillStyle = grad;
     g.fillRect(0, floorY, w, 30);
 
-    // Confetti particles.
-    for (const p of this.particles) {
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(p.rot);
-      g.globalAlpha = Math.max(0, p.life / p.max);
-      g.font = "22px serif";
-      g.textAlign = "center";
-      g.fillText(p.emoji, 0, 0);
-      g.restore();
-      p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.rot += p.rotV; p.life--;
-    }
-    g.globalAlpha = 1;
-    this.particles = this.particles.filter(p => p.life > 0);
+    // Confetti dots (cheap, no save/restore, no emoji glyph cost).
+    this.particles = drawDots(g, this.particles);
 
     // Effect tint overlays.
     if (frozen) {
@@ -416,7 +388,7 @@ const FallingMode = {
     this._drawComboBadge(g, w);
     this._drawEffectsBar(g);
 
-    this._setHudExtra("Score", this.stats.score);
+    setHudExtra("Score", this.stats.score);
 
     g.restore();
     this._raf = requestAnimationFrame(this._tick);
@@ -608,10 +580,6 @@ const FallingMode = {
     g.restore();
   },
 
-  _setHudExtra(label, val) {
-    document.getElementById("hud-extra-label").textContent = label;
-    document.getElementById("hud-extra").textContent = val;
-  },
 
   _finish() {
     if (this.finished) return;

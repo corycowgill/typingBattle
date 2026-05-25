@@ -40,7 +40,7 @@ const ShooterMode = {
     this.activeEffects = { freeze: 0, double: 0, slow: 0 };
 
     KB.setLevel(ctx.level);
-    this._setHudExtra("Targets", `0/${this.maxWords}`);
+    setHudExtra("Targets", `0/${this.maxWords}`);
     this._renderTarget();
     this._tick = this._tick.bind(this);
     this._raf = requestAnimationFrame(this._tick);
@@ -217,7 +217,7 @@ const ShooterMode = {
     spawnPopup(this.popups, e.x, e.y - 10, "+" + points + (mult > 1 ? " x2!" : ""), "#7ee7ff");
     bumpShake(this, 3);
     this.entities = this.entities.filter(x => x !== e);
-    this._setHudExtra("Targets", `${this.wordsKilled}/${this.maxWords}`);
+    setHudExtra("Targets", `${this.wordsKilled}/${this.maxWords}`);
 
     if (this.wordsKilled >= this.maxWords && !this.bossPhase) {
       this.bossPhase = true;
@@ -246,16 +246,9 @@ const ShooterMode = {
     Sound.bossDefeat();
     bumpShake(this, 22);
     spawnPopup(this.popups, e.x, e.y - 30, "+" + points + " BOSS DEFEATED!", "#ffd24a");
-    const emojis = this.ctx.theme.collectibles;
-    for (let i = 0; i < 60; i++) {
-      this.particles.push({
-        x: e.x, y: e.y,
-        vx: (Math.random() - 0.5) * 16,
-        vy: (Math.random() - 0.5) * 16 - 3,
-        life: 90, max: 90,
-        emoji: emojis[i % emojis.length],
-        rot: 0, rotV: (Math.random() - 0.5) * 0.5,
-      });
+    const palette = ["#ffd24a", "#ff89e1", "#7ee7ff", "#5cffa7", "#ff6b8a"];
+    for (let i = 0; i < 4; i++) {
+      burstDots(this.particles, e.x, e.y, 8, palette[i % palette.length]);
     }
     this.bossDefeated = true;
     this.boss = null;
@@ -265,17 +258,7 @@ const ShooterMode = {
   },
 
   _burst(x, y) {
-    const emojis = this.ctx.theme.collectibles;
-    for (let i = 0; i < 16; i++) {
-      this.particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 8,
-        vy: (Math.random() - 0.5) * 8,
-        life: 42, max: 42,
-        emoji: emojis[Math.floor(Math.random() * emojis.length)],
-        rot: 0, rotV: (Math.random() - 0.5) * 0.4,
-      });
-    }
+    burstDots(this.particles, x, y, 8, "#7ee7ff");
   },
 
   _loseLife() {
@@ -441,20 +424,8 @@ const ShooterMode = {
     g.restore();
     g.textBaseline = "alphabetic";
 
-    // Particles.
-    for (const p of this.particles) {
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(p.rot);
-      g.globalAlpha = Math.max(0, p.life / p.max);
-      g.font = "22px serif";
-      g.textAlign = "center";
-      g.fillText(p.emoji, 0, 0);
-      g.restore();
-      p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.life--;
-    }
-    g.globalAlpha = 1;
-    this.particles = this.particles.filter(p => p.life > 0);
+    // Particles (cheap dots).
+    this.particles = drawDots(g, this.particles);
 
     // Effect tints.
     if (frozen) {
@@ -652,10 +623,6 @@ const ShooterMode = {
     g.restore();
   },
 
-  _setHudExtra(label, val) {
-    document.getElementById("hud-extra-label").textContent = label;
-    document.getElementById("hud-extra").textContent = val;
-  },
 
   _finish() {
     if (this.finished) return;
