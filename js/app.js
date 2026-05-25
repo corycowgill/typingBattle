@@ -372,6 +372,51 @@ function showAchievementToast(text) {
   setTimeout(() => wrap.classList.remove("show"), 2400);
 }
 
+/* ---------- Per-key accuracy heatmap (summary screen) ---------- */
+function renderKeyHeatmap(perKey) {
+  const root = document.getElementById("heatmap");
+  if (!root) return;
+  root.innerHTML = "";
+  let totalAttempts = 0;
+  for (const k in perKey) totalAttempts += perKey[k].correct + perKey[k].wrong;
+  if (totalAttempts === 0) {
+    root.style.display = "none";
+    return;
+  }
+  root.style.display = "";
+
+  KEYBOARD_LAYOUT.forEach((row, ri) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = "hm-row";
+    // Visual indent for keyboard staggering.
+    if (ri === 1) rowEl.style.paddingLeft = "16px";
+    if (ri === 2) rowEl.style.paddingLeft = "30px";
+    if (ri === 3) rowEl.style.paddingLeft = "60px";
+    if (ri === 4) rowEl.style.paddingLeft = "120px";
+    row.forEach(k => {
+      const el = document.createElement("div");
+      el.className = "hm-key";
+      const stats = perKey[k.toLowerCase()] || perKey[k];
+      const total = stats ? stats.correct + stats.wrong : 0;
+      if (k === " ") { el.classList.add("hm-space"); el.textContent = "space"; }
+      else el.textContent = k;
+      if (total > 0) {
+        const acc = stats.correct / total;
+        const hue = Math.round(acc * 120); // 0=red, 120=green
+        el.style.background = `hsl(${hue}, 70%, 38%)`;
+        el.style.color = acc > 0.55 ? "#06140a" : "#fff";
+        el.title = `${k}: ${Math.round(acc * 100)}% (${total} attempts)`;
+        el.dataset.acc = Math.round(acc * 100);
+      } else {
+        el.classList.add("hm-empty");
+        el.title = `${k}: not typed`;
+      }
+      rowEl.appendChild(el);
+    });
+    root.appendChild(rowEl);
+  });
+}
+
 /* ---------- Screen routing ---------- */
 const screens = {
   profile: document.getElementById("screen-profile"),
@@ -526,7 +571,12 @@ const App = {
   _toggleMute() {
     const muted = State.toggleMute();
     this._refreshMuteIcons();
-    if (!muted) Sound.correct();
+    if (muted) {
+      Sound.stopBgMusic();
+    } else {
+      Sound.correct();
+      if (this.currentModeInstance) Sound.startBgMusic(this.selectedTheme);
+    }
   },
 
   _quitToMenu() {
@@ -534,6 +584,7 @@ const App = {
     this.currentModeInstance = null;
     this._startToken++;
     this._setPaused(false);
+    Sound.stopBgMusic();
     const overlay = document.getElementById("countdown");
     if (overlay) overlay.style.display = "none";
     this._enterMenu();
@@ -744,15 +795,14 @@ const App = {
     }
     this.lastSessionLevel = lesson.id;
 
-    // Show a Get Ready countdown, then init the mode. We only assign
-    // currentModeInstance once init is complete so stray keystrokes during
-    // the countdown don't hit an uninitialized object.
+    // Show a Get Ready countdown, then init the mode + start music.
     const token = ++this._startToken;
     this._countdown(() => {
       if (token !== this._startToken) return;        // user quit / restarted
       const instance = Object.assign({}, mode);
       instance.init(ctx);
       this.currentModeInstance = instance;
+      if (!State.data.muted) Sound.startBgMusic(this.selectedTheme);
     });
   },
 
@@ -793,6 +843,8 @@ const App = {
 
   _endGame(stats, levelPlayed) {
     this.lastSessionStats = stats;
+    this.currentModeInstance = null;
+    Sound.stopBgMusic();
     const result = State.applySession(stats, levelPlayed);
     Sound.win();
     document.getElementById("sum-wpm").textContent = stats.wpm();
@@ -826,6 +878,7 @@ const App = {
 
     // Star rating: 3 stars = high accuracy + speed, 2 = solid, 1 = participation.
     this._renderStarRating(stats);
+    renderKeyHeatmap(stats.perKey || {});
 
     showScreen("summary");
     this._shootConfetti(stats);

@@ -853,6 +853,59 @@ body {
 }
 .summary-actions { display: flex; gap: 14px; justify-content: center; }
 
+/* ---------- Per-key heatmap on summary ---------- */
+.heatmap-section {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+  margin: 4px 0 22px;
+}
+.heatmap-title {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-weight: 800;
+}
+.heatmap-legend { display: flex; align-items: center; gap: 4px; font-size: 10px; text-transform: none; letter-spacing: 0.5px; opacity: 0.85; font-weight: 600; }
+.heatmap-legend .lg {
+  display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+  margin: 0 2px 0 6px;
+}
+.heatmap-legend .lg-low  { background: hsl(0,   70%, 45%); }
+.heatmap-legend .lg-mid  { background: hsl(60,  70%, 45%); }
+.heatmap-legend .lg-high { background: hsl(120, 70%, 45%); }
+.heatmap { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.hm-row { display: flex; gap: 3px; }
+.hm-key {
+  width: 26px; height: 26px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+}
+.hm-key.hm-empty { opacity: 0.25; }
+.hm-key.hm-space { width: 130px; }
+.hm-key[data-acc]::after {
+  content: attr(data-acc) "%";
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
 /* Confetti burst on summary */
 .confetti-piece {
   position: absolute;
