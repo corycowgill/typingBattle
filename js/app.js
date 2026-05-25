@@ -831,11 +831,19 @@ const App = {
   _renderThemePicker() {
     const root = document.getElementById("theme-picker");
     root.innerHTML = "";
+    // Swatch colors per theme (kept in sync with the CSS theme palettes).
+    const SWATCHES = {
+      space:      ["#7ee7ff", "#c98bff", "#ffd24a"],
+      underwater: ["#5eead4", "#fde68a", "#fb7185"],
+      jungle:     ["#fde047", "#fb923c", "#34d399"],
+      castle:     ["#fbbf24", "#f472b6", "#c4b5fd"],
+    };
     THEME_IDS.forEach(id => {
       const t = THEMES[id];
       const btn = document.createElement("button");
       btn.className = "theme-btn";
-      btn.textContent = t.label;
+      const swatch = (SWATCHES[id] || []).map(c => `<span style="background:${c}"></span>`).join("");
+      btn.innerHTML = `<div class="theme-swatch">${swatch}</div><div>${t.label}</div>`;
       if (id === this.selectedTheme) btn.classList.add("active");
       btn.addEventListener("click", () => {
         this.selectedTheme = id;
