@@ -121,6 +121,9 @@
       </div>
     </div>
     <div id="achievement-toast" class="achievement-toast"></div>
+    <div id="focus-warn" class="focus-warn" style="display:none;">
+      <span>👆 Click here to start typing</span>
+    </div>
   </div>
 
   <div id="keyboard" class="keyboard"></div>
@@ -156,12 +159,116 @@
   </div>
 </section>
 
+<!-- ====== First-time Tutorial ====== -->
+<div id="tutorial" class="modal-backdrop" style="display:none;">
+  <div class="tutorial-card">
+    <div class="tut-progress">
+      <span class="tut-dot active"></span>
+      <span class="tut-dot"></span>
+      <span class="tut-dot"></span>
+      <span class="tut-dot"></span>
+    </div>
+
+    <div class="tutorial-step" data-step="1">
+      <div class="tut-emoji">👋</div>
+      <h2>Welcome, <span id="tut-name">friend</span>!</h2>
+      <p class="tut-lead">Let's learn to type like a typing wizard.</p>
+      <p>I'll show you the basics in 30 seconds.</p>
+    </div>
+
+    <div class="tutorial-step" data-step="2" hidden>
+      <div class="tut-emoji">🤲</div>
+      <h2>Rest on the Home Row</h2>
+      <p>Place your fingers gently on these 8 keys:</p>
+      <div class="tut-handrow">
+        <div class="tut-hand">
+          <div class="tut-key f-pinky">A</div>
+          <div class="tut-key f-ring">S</div>
+          <div class="tut-key f-middle">D</div>
+          <div class="tut-key f-index">F</div>
+        </div>
+        <div class="tut-gap"></div>
+        <div class="tut-hand">
+          <div class="tut-key f-index">J</div>
+          <div class="tut-key f-middle">K</div>
+          <div class="tut-key f-ring">L</div>
+          <div class="tut-key f-pinky">;</div>
+        </div>
+      </div>
+      <p class="tut-tip">Feel for the bumps on F and J — they're your home base.</p>
+    </div>
+
+    <div class="tutorial-step" data-step="3" hidden>
+      <div class="tut-emoji">🌈</div>
+      <h2>Finger Colors</h2>
+      <p>Every key is colored by which finger should press it:</p>
+      <div class="tut-finger-legend">
+        <span class="lg f-pinky">Pinky</span>
+        <span class="lg f-ring">Ring</span>
+        <span class="lg f-middle">Middle</span>
+        <span class="lg f-index">Index</span>
+        <span class="lg f-thumb">Thumb</span>
+      </div>
+      <p class="tut-tip">Match the color = use that finger. The game pulses the next key to press.</p>
+    </div>
+
+    <div class="tutorial-step" data-step="4" hidden>
+      <div class="tut-emoji">🎮</div>
+      <h2>You're ready to play!</h2>
+      <p>Press <kbd>Esc</kbd> anytime to pause.</p>
+      <p class="tut-big">Try not to peek at your hands — your fingers will remember!</p>
+    </div>
+
+    <div class="tutorial-actions">
+      <button class="btn btn-ghost" id="btn-tut-back" hidden>← Back</button>
+      <button class="btn btn-ghost" id="btn-tut-skip">Skip</button>
+      <button class="btn btn-primary" id="btn-tut-next">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Settings Modal ====== -->
+<div id="settings-modal" class="modal-backdrop" style="display:none;">
+  <div class="settings-card">
+    <button class="pd-close" id="btn-close-settings" aria-label="Close">✕</button>
+    <h2 class="settings-title">⚙️ Settings</h2>
+
+    <label class="setting-row">
+      <span class="setting-label">
+        <span class="setting-name">🎵 Background music</span>
+        <span class="setting-desc">Soft ambient pad during gameplay</span>
+      </span>
+      <input type="checkbox" id="set-music" class="toggle" />
+      <span class="toggle-track"><span class="toggle-knob"></span></span>
+    </label>
+
+    <label class="setting-row">
+      <span class="setting-label">
+        <span class="setting-name">🌊 Reduce motion</span>
+        <span class="setting-desc">Calmer animations: less shake & wiggle</span>
+      </span>
+      <input type="checkbox" id="set-reduce-motion" class="toggle" />
+      <span class="toggle-track"><span class="toggle-knob"></span></span>
+    </label>
+
+    <label class="setting-row">
+      <span class="setting-label">
+        <span class="setting-name">⏭️ Skip lesson tips</span>
+        <span class="setting-desc">Jump straight into the game from the menu</span>
+      </span>
+      <input type="checkbox" id="set-skip-tips" class="toggle" />
+      <span class="toggle-track"><span class="toggle-knob"></span></span>
+    </label>
+  </div>
+</div>
+
 <!-- ====== Lesson Intro Modal ====== -->
 <div id="lesson-intro" class="modal-backdrop" style="display:none;">
   <div class="lesson-intro-card">
     <div class="lesson-intro-num" id="li-num">LEVEL 1</div>
     <div class="lesson-intro-name" id="li-name">Home Row</div>
     <div class="lesson-intro-tip" id="li-tip">Rest your fingers on a s d f and j k l ;</div>
+    <div class="lesson-intro-modetip" id="li-modetip" hidden></div>
     <div class="lesson-intro-newkeys">
       <div class="lesson-intro-label">New keys this level</div>
       <div id="li-keys" class="lesson-intro-keys-row"></div>
@@ -183,6 +290,7 @@
         <div class="pd-name" id="pd-name">Player</div>
         <div class="pd-level" id="pd-level">Level 1 unlocked</div>
       </div>
+      <button class="btn btn-ghost pd-settings-btn" id="btn-open-settings">⚙️ Settings</button>
     </div>
     <div class="pd-stats" id="pd-stats"></div>
     <div class="pd-section-title">Lifetime key accuracy</div>

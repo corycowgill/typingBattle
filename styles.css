@@ -1226,6 +1226,244 @@ body::after {
   display: flex; gap: 12px; justify-content: center;
 }
 
+/* ---------- First-time tutorial ---------- */
+.tutorial-card {
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 28px;
+  padding: 32px 40px 24px;
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  animation: pausePop 0.32s cubic-bezier(.2,.9,.3,1.4);
+  position: relative;
+}
+.tut-progress {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 12px;
+}
+.tut-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background .2s ease, transform .2s ease;
+}
+.tut-dot.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  transform: scale(1.25);
+  box-shadow: 0 0 8px var(--accent);
+}
+.tutorial-step h2 {
+  margin: 4px 0 12px;
+  font-size: 30px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.tutorial-step p { font-size: 15px; opacity: 0.92; line-height: 1.5; margin: 6px 0; font-weight: 600; }
+.tutorial-step .tut-lead { font-size: 17px; opacity: 1; margin: 0 0 8px; }
+.tut-emoji {
+  font-size: 64px;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  animation: tutPop 0.55s cubic-bezier(.2,.9,.3,1.6);
+}
+@keyframes tutPop {
+  0%   { transform: scale(0.3) rotate(-15deg); }
+  60%  { transform: scale(1.2) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.tut-tip {
+  font-size: 13px;
+  opacity: 0.78;
+  margin-top: 12px;
+  padding: 8px 14px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  display: inline-block;
+}
+.tut-big { font-size: 17px; font-weight: 800; margin-top: 14px; }
+.tut-handrow {
+  display: flex; gap: 24px; justify-content: center; margin: 14px 0 4px;
+}
+.tut-hand { display: flex; gap: 6px; }
+.tut-gap { width: 26px; }
+.tut-key {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  font-weight: 900; font-size: 18px;
+  color: #111;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow:
+    inset 0 -3px 0 rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    0 4px 12px rgba(0,0,0,0.4);
+  animation: keyPulse 1.6s ease-in-out infinite;
+}
+@keyframes keyPulse {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+.tut-finger-legend {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 12px 0 4px;
+}
+.tut-finger-legend .lg {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25);
+}
+.tutorial-actions {
+  display: flex; gap: 8px; justify-content: space-between; margin-top: 18px;
+}
+.tutorial-actions #btn-tut-skip { margin-right: auto; }
+.tutorial-step[hidden] { display: none; }
+.tutorial-step kbd {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.18);
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* ---------- Settings modal ---------- */
+.settings-card {
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 28px;
+  padding: 28px 36px 24px;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  animation: pausePop 0.32s cubic-bezier(.2,.9,.3,1.4);
+  position: relative;
+}
+.settings-title {
+  margin: 0 0 16px;
+  font-size: 26px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.setting-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.setting-row:hover { background: rgba(255,255,255,0.06); border-color: var(--accent); }
+.setting-label { flex: 1; }
+.setting-name { display: block; font-size: 15px; font-weight: 800; }
+.setting-desc { display: block; font-size: 12px; opacity: 0.75; margin-top: 2px; font-weight: 600; }
+
+/* Custom toggle: hide checkbox, render via .toggle-track. */
+.toggle { position: absolute; opacity: 0; pointer-events: none; }
+.toggle-track {
+  width: 48px; height: 26px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 14px;
+  position: relative;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: background .2s ease, border-color .2s ease;
+}
+.toggle-knob {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  background: #ddd;
+  border-radius: 50%;
+  transition: left .22s cubic-bezier(.2,.9,.3,1.4), background .2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.toggle:checked ~ .toggle-track {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
+.toggle:checked ~ .toggle-track .toggle-knob {
+  left: 25px;
+  background: #fff;
+}
+
+/* Lesson-intro mode tip card */
+.lesson-intro-modetip {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent-2) 22%, transparent));
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
+}
+.lesson-intro-modetip::before {
+  content: "💡  ";
+  font-weight: 900;
+}
+
+/* Focus-lost warning bar on the play area */
+.focus-warn {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 138, 0.85);
+  color: #08111a;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  padding: 14px;
+  z-index: 4;
+  cursor: pointer;
+  animation: focusBlink 1.4s ease-in-out infinite;
+  box-shadow: 0 -8px 22px rgba(0,0,0,0.4);
+}
+@keyframes focusBlink {
+  0%, 100% { background: rgba(255, 107, 138, 0.85); }
+  50%      { background: rgba(255, 170, 100, 0.85); }
+}
+
+/* Profile detail "Settings" button position */
+.pd-settings-btn {
+  font-size: 13px;
+  padding: 8px 14px;
+  margin-left: auto;
+}
+
+/* ---------- Reduced motion ---------- */
+body.reduce-motion .title-letter,
+body.reduce-motion .mode-card:hover .mode-emoji,
+body.reduce-motion .tut-emoji,
+body.reduce-motion .tut-key,
+body.reduce-motion .kb-key.next,
+body.reduce-motion .title-eyebrow,
+body.reduce-motion .title,
+body.reduce-motion .title-underline,
+body.reduce-motion .bg-deco {
+  animation: none !important;
+}
+body.reduce-motion .star.lit { animation: none !important; }
+body.reduce-motion .confetti-piece { display: none !important; }
+body.reduce-motion .stat-value.bumped { transform: none !important; }
+body.reduce-motion .mode-card:hover { transform: translateY(-2px) scale(1); }
+
 /* ---------- Profile detail modal ---------- */
 .profile-detail-card {
   background: var(--panel);

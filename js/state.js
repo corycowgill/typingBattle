@@ -7,13 +7,23 @@ const STORAGE_KEY = "typingBattle.profiles.v1";
 const AVATARS = ["🚀","🐠","🐉","🐒","🦊","🦄","🐱","🐼","🦁","🐢","🐧","🦉","🐝","🐙","🦋","🐲"];
 
 const State = {
-  data: { profiles: [], activeId: null, muted: false },
+  data: {
+    profiles: [],
+    activeId: null,
+    muted: false,
+    settings: { music: true, reducedMotion: false, skipLessonTips: false },
+  },
   current: null,
 
   load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) this.data = Object.assign(this.data, JSON.parse(raw));
+      if (raw) {
+        const loaded = JSON.parse(raw);
+        // Deep-merge so new keys (like settings) don't get clobbered.
+        this.data = Object.assign({}, this.data, loaded);
+        this.data.settings = Object.assign({}, this.data.settings, loaded.settings || {});
+      }
     } catch (e) { /* corrupt or unavailable: ignore */ }
     if (this.data.activeId) {
       this.current = this.data.profiles.find(p => p.id === this.data.activeId) || null;
@@ -45,6 +55,8 @@ const State = {
       bestWpmByMode: {},
       badges: [],
       perKey: {},                // long-term per-key stats
+      tutorialComplete: false,
+      modesPlayed: [],           // ["practice", "wordpop", ...]
     };
     this.data.profiles.push(profile);
     this.save();

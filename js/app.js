@@ -423,6 +423,8 @@ function drawDots(g, arr) {
 }
 
 function bumpShake(state, amount) {
+  // Reduced-motion setting silences canvas screen-shake too.
+  if (State && State.data && State.data.settings && State.data.settings.reducedMotion) return;
   state.shake = Math.min(20, (state.shake || 0) + amount);
 }
 function applyShake(g, state) {
@@ -521,11 +523,17 @@ const App = {
     this._wireGlobalEvents();
     this._animateTitle();
     this._spawnBgDecorations(State.current ? (State.current.theme || "space") : "space");
+    this._applySettings();
     if (State.data.profiles.length === 0) {
       this._renderProfileScreen();
       showScreen("profile");
     } else if (State.current) {
-      this._enterMenu();
+      // Returning kid who never finished the tutorial - keep nudging them.
+      if (!State.current.tutorialComplete) {
+        this._showTutorial();
+      } else {
+        this._enterMenu();
+      }
     } else {
       this._renderProfileScreen();
       showScreen("profile");
@@ -610,6 +618,30 @@ const App = {
       }
     });
 
+    // Tutorial.
+    document.getElementById("btn-tut-next").addEventListener("click", () => this._tutNext());
+    document.getElementById("btn-tut-back").addEventListener("click", () => this._tutBack());
+    document.getElementById("btn-tut-skip").addEventListener("click", () => this._tutFinish());
+
+    // Settings.
+    document.getElementById("btn-open-settings").addEventListener("click", () => this._openSettings());
+    document.getElementById("btn-close-settings").addEventListener("click", () => {
+      document.getElementById("settings-modal").style.display = "none";
+    });
+    document.getElementById("settings-modal").addEventListener("click", (e) => {
+      if (e.target.id === "settings-modal") {
+        document.getElementById("settings-modal").style.display = "none";
+      }
+    });
+    document.getElementById("set-music").addEventListener("change", e => this._setSetting("music", e.target.checked));
+    document.getElementById("set-reduce-motion").addEventListener("change", e => this._setSetting("reducedMotion", e.target.checked));
+    document.getElementById("set-skip-tips").addEventListener("change", e => this._setSetting("skipLessonTips", e.target.checked));
+
+    // Focus-warning bar - clicking it re-focuses the input.
+    document.getElementById("focus-warn").addEventListener("click", () => {
+      document.getElementById("hidden-input").focus();
+    });
+
     document.getElementById("btn-quit-game").addEventListener("click", () => this._quitToMenu());
     document.getElementById("btn-pause-game").addEventListener("click", () => this._togglePause());
     document.getElementById("btn-resume").addEventListener("click", () => this._setPaused(false));
@@ -660,6 +692,23 @@ const App = {
 
     // Refresh mute icon on load.
     this._refreshMuteIcons();
+
+    // Focus watcher: poll once a second while the game is active so a
+    // dropped input focus shows the "click to type" warning immediately.
+    setInterval(() => this._checkFocus(), 500);
+  },
+
+  _checkFocus() {
+    const game = document.getElementById("screen-game");
+    const warn = document.getElementById("focus-warn");
+    if (!game.classList.contains("active") || this.paused) {
+      warn.style.display = "none";
+      return;
+    }
+    const hidden = document.getElementById("hidden-input");
+    const focused = document.activeElement === hidden ||
+                    document.activeElement === document.body;
+    warn.style.display = focused ? "none" : "flex";
   },
 
   _toggleMute() {
@@ -669,7 +718,9 @@ const App = {
       Sound.stopBgMusic();
     } else {
       Sound.correct();
-      if (this.currentModeInstance) Sound.startBgMusic(this.selectedTheme);
+      if (this.currentModeInstance && State.data.settings.music) {
+        Sound.startBgMusic(this.selectedTheme);
+      }
     }
   },
 
@@ -746,7 +797,8 @@ const App = {
           return;
         }
         State.setActive(p.id);
-        this._enterMenu();
+        if (!State.current.tutorialComplete) this._showTutorial();
+        else this._enterMenu();
       });
       list.appendChild(card);
     });
@@ -776,7 +828,9 @@ const App = {
     State.setActive(p.id);
     document.getElementById("new-profile-name").value = "";
     Sound.levelUp();
-    this._enterMenu();
+    this._applySettings();
+    // Walk new players through the basics before the menu.
+    this._showTutorial();
   },
 
   /* ---------- Menu screen ---------- */
@@ -856,14 +910,116 @@ const App = {
     });
   },
 
+  /* ---------- First-time tutorial ---------- */
+  _showTutorial() {
+    this._tutStep = 1;
+    document.getElementById("tut-name").textContent = State.current ? State.current.name : "friend";
+    this._renderTutStep();
+    document.getElementById("tutorial").style.display = "flex";
+  },
+  _renderTutStep() {
+    document.querySelectorAll(".tutorial-step").forEach(s => {
+      s.hidden = (parseInt(s.dataset.step, 10) !== this._tutStep);
+    });
+    document.querySelectorAll(".tut-dot").forEach((d, i) => {
+      d.classList.toggle("active", i + 1 <= this._tutStep);
+    });
+    document.getElementById("btn-tut-back").hidden = this._tutStep === 1;
+    const next = document.getElementById("btn-tut-next");
+    next.textContent = this._tutStep === 4 ? "Let's play! 🎮" : "Next →";
+  },
+  _tutNext() {
+    if (this._tutStep < 4) {
+      this._tutStep++;
+      this._renderTutStep();
+      Sound.correct();
+    } else {
+      this._tutFinish();
+    }
+  },
+  _tutBack() {
+    if (this._tutStep > 1) {
+      this._tutStep--;
+      this._renderTutStep();
+    }
+  },
+  _tutFinish() {
+    document.getElementById("tutorial").style.display = "none";
+    if (State.current) {
+      State.current.tutorialComplete = true;
+      State.save();
+    }
+    this._enterMenu();
+  },
+
+  /* ---------- Settings modal ---------- */
+  _openSettings() {
+    const s = State.data.settings;
+    document.getElementById("set-music").checked = !!s.music;
+    document.getElementById("set-reduce-motion").checked = !!s.reducedMotion;
+    document.getElementById("set-skip-tips").checked = !!s.skipLessonTips;
+    document.getElementById("settings-modal").style.display = "flex";
+  },
+  _setSetting(key, value) {
+    State.data.settings[key] = value;
+    State.save();
+    this._applySettings();
+  },
+  _applySettings() {
+    const s = State.data.settings;
+    document.body.classList.toggle("reduce-motion", !!s.reducedMotion);
+    // If music turned off mid-game, stop. If on and a game is running, start.
+    if (!s.music) {
+      Sound.stopBgMusic();
+    } else if (this.currentModeInstance && !State.data.muted) {
+      Sound.startBgMusic(this.selectedTheme);
+    }
+  },
+
+  /* ---------- Mode-specific intro tip ---------- */
+  _modeTip(modeName) {
+    return {
+      practice: "Practice mode is calm: one word at a time. Take your time and watch the keyboard for the next finger color.",
+      wordpop:  "Letters pop up around the screen. Type each letter before its ring drains to pop it!",
+      falling:  "Words drift down. Type the first letter to lock on, then finish typing to destroy.",
+      shooter:  "Enemies fly in. Type the first letter to target, finish the word to blast them.",
+      race:     "Type the full sentence to advance. Mistakes don't fail you, but accuracy matters.",
+    }[modeName];
+  },
+
   /* ---------- Lesson intro modal ---------- */
   _showLessonIntro(modeName) {
     this._pendingMode = modeName;
     const lesson = LESSONS.find(l => l.id === this.selectedLevel);
     if (!lesson) { this._startGame(modeName); return; }
+
+    // Honor the "Skip lesson tips" setting, UNLESS it's the kid's first
+    // time playing this mode - they always get the one-time mode tip.
+    const profile = State.current;
+    const isFirstModePlay = profile && !(profile.modesPlayed || []).includes(modeName);
+    if (State.data.settings && State.data.settings.skipLessonTips && !isFirstModePlay) {
+      this._pendingMode = null;
+      this._startGame(modeName);
+      return;
+    }
+
     document.getElementById("li-num").textContent = "LEVEL " + lesson.id;
     document.getElementById("li-name").textContent = lesson.name;
     document.getElementById("li-tip").textContent = lesson.intro || "";
+
+    // Mode-specific tip card (shown only on the first play of each mode).
+    const modetipEl = document.getElementById("li-modetip");
+    if (isFirstModePlay) {
+      const tip = this._modeTip(modeName);
+      if (tip) {
+        modetipEl.textContent = tip;
+        modetipEl.hidden = false;
+      } else {
+        modetipEl.hidden = true;
+      }
+    } else {
+      modetipEl.hidden = true;
+    }
 
     // Diff against previous level's keys to show only the NEW ones.
     const prev = LESSONS.find(l => l.id === lesson.id - 1);
@@ -988,6 +1144,15 @@ const App = {
     }
     this.lastSessionLevel = lesson.id;
 
+    // Mark this mode as played for the active profile (drives first-play tips).
+    if (State.current) {
+      if (!State.current.modesPlayed) State.current.modesPlayed = [];
+      if (!State.current.modesPlayed.includes(modeName)) {
+        State.current.modesPlayed.push(modeName);
+        State.save();
+      }
+    }
+
     // Show a Get Ready countdown, then init the mode + start music.
     const token = ++this._startToken;
     this._countdown(() => {
@@ -995,7 +1160,9 @@ const App = {
       const instance = Object.assign({}, mode);
       instance.init(ctx);
       this.currentModeInstance = instance;
-      if (!State.data.muted) Sound.startBgMusic(this.selectedTheme);
+      if (!State.data.muted && State.data.settings.music) Sound.startBgMusic(this.selectedTheme);
+      // Make sure the hidden input owns keyboard focus.
+      document.getElementById("hidden-input").focus();
     });
   },
 
